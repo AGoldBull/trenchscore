@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TrenchScore",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "用你自己的 Jev Key，给 GMGN 战壕里的币打分，并显示在币名后面。",
   "permissions": ["storage"],
   "host_permissions": [

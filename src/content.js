@@ -256,7 +256,11 @@
     }
     if (!hasKey || authError) return;
     const known = results.get(id);
-    if (known && known.fingerprint === fp) return;
+    if (known && known.fingerprint === fp) {
+      if (cardFp && known.cardFp !== cardFp) known.cardFp = cardFp;
+      paintAll();
+      return;
+    }
     if (pending.has(id + '|' + fp)) return;
     pending.add(id + '|' + fp);
     paintDock();
@@ -299,7 +303,11 @@
       const id = card.getAttribute('data-gj-card');
       const fp = card.getAttribute('data-gj-fp');
       const known = results.get(id);
-      const fresh = known && known.cardFp === fp ? known : null;
+      let busy = false;
+      pending.forEach(function (key) {
+        if (key.indexOf(id + '|') === 0) busy = true;
+      });
+      const fresh = known && (known.cardFp === fp || !busy) ? known : null;
       if (fresh && fresh.hard) {
         visibleSkip += 1;
         paintBadge(card, fresh);
