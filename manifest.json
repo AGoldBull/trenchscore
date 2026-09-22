@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "TrenchScore",
+  "version": "0.1.6",
+  "description": "用你自己的 Jev Key，给 GMGN 战壕里的币打分，并显示在币名后面。",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://gmgn.ai/*",
+    "https://*.gmgn.ai/*",
+    "https://api.typesafe.ai/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "TrenchScore",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://gmgn.ai/*", "https://*.gmgn.ai/*"],
+      "js": ["src/page-bridge.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://gmgn.ai/*", "https://*.gmgn.ai/*"],
+      "js": ["src/lib.js", "src/content.js"],
+      "css": ["src/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

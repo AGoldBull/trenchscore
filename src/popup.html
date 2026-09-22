@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>TrenchScore</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <strong>TrenchScore</strong>
+    </header>
+    <label class="switch">
+      <span>在战壕里显示分数</span>
+      <span class="switch-ui">
+        <input id="enabled" type="checkbox" />
+        <span class="knob" aria-hidden="true"></span>
+      </span>
+    </label>
+    <div class="field">
+      <span>Jev API Key</span>
+      <div class="secret">
+        <input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴 TypeSafe Key" />
+        <button id="toggleKey" type="button" class="ghost" aria-controls="apiKey" aria-pressed="false">显示</button>
+      </div>
+    </div>
+    <label class="field">
+      <span>模型</span>
+      <input id="model" type="text" spellcheck="false" value="jev-latest" />
+    </label>
+    <label class="field">
+      <span>供应商地址</span>
+      <input id="endpoint" type="url" spellcheck="false" placeholder="https://api.typesafe.ai/v1/systemone" />
+    </label>
+    <section class="rules" aria-label="硬条件">
+      <strong>硬条件</strong>
+      <div id="ruleList"></div>
+    </section>
+    <div class="actions">
+      <button id="save" type="button">保存</button>
+      <button id="test" type="button" class="ghost">测试 Key</button>
+    </div>
+    <p id="status" class="status" role="status"></p>
+    <script src="lib.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
