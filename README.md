@@ -41,7 +41,7 @@ Jev 不写一段分析。它看的是这张卡片上已经出现的公开字段�
 
 ## 供应商
 
-弹窗里的「供应商地址」和「模型」要成对改，改完先保存，再点「测试 Key」。Key 也不能串用：TypeSafe 的 Key 不能拿去调 OpenRouter 或 Vercel。地址要填接口路径，不要填官网、控制台或文档页，那些页面返回的是 HTML。
+弹窗里的「供应商地址」和「模型」要成对改，改完先保存，再点「测试 Key」。Key 也不能串用：TypeSafe 的 Key 不能拿去调 OpenRouter 或 Vercel。
 
 第一次保存自定义地址时，浏览器会再要一次访问该网站的权限，需要允许。
 
@@ -49,15 +49,9 @@ Jev 不写一段分析。它看的是这张卡片上已经出现的公开字段�
 | --- | --- | --- | --- |
 | TypeSafe | `https://api.typesafe.ai/v1/systemone` | `jev-latest` | [console.typesafe.ai](https://console.typesafe.ai) |
 | OpenRouter | `https://openrouter.ai/api/v1/systemone` | `jev-latest` | `sk-or-v1-...` |
-| OpenRouter，模型页上的接口 | `https://openrouter.ai/api/alpha/decisions` | `~typesafe/jev-latest` | `sk-or-v1-...` |
-| Vercel，保留置信度 | `https://ai-gateway.vercel.sh/typesafe/v1/systemone` | `typesafe-ai/jev` | AI Gateway |
-| Vercel `/v1/evaluate` | `https://ai-gateway.vercel.sh/v1/evaluate` | `typesafe-ai/jev` | AI Gateway |
+| Vercel | `https://ai-gateway.vercel.sh/typesafe/v1/systemone` | `typesafe-ai/jev` | AI Gateway |
 
-OpenRouter 的 `jev-latest` 只在 `/api/v1/systemone` 上会被改写成 `~typesafe/jev-latest`。走 `/api/alpha/decisions` 时，模型要自己写成 `~typesafe/jev-latest`。Vercel 不认 `jev-latest`，模型用 `typesafe-ai/jev`。
-
-`/v1/evaluate` 的星星能出来。它的置信度不在答案上，悬停不会出现虚线框。要用虚线框，填上面 Vercel 那条 `/typesafe/v1/systemone`。
-
-Cloudflare Workers AI 的模型是 `typesafe/jev`，但请求要包在 `input` 里，结果也包在 `result` 里。只改地址和模型不够，插件现在对不上。
+Vercel 不认 `jev-latest`，模型要改成 `typesafe-ai/jev`。
 
 ## 隐私
 
