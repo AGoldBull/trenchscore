@@ -108,6 +108,24 @@ test('hard gates skip only when the field is present and over the line', functio
   assert.equal(GJ.hardReject({ is_wash_trading: true }, { wash: { on: false } }), null);
 });
 
+test('concurrency defaults to 1 and stays between 1 and 5', function () {
+  assert.equal(GJ.concurrencyLimit(), 1);
+  assert.equal(GJ.concurrencyLimit(''), 1);
+  assert.equal(GJ.concurrencyLimit(0), 1);
+  assert.equal(GJ.concurrencyLimit(1), 1);
+  assert.equal(GJ.concurrencyLimit(3.6), 4);
+  assert.equal(GJ.concurrencyLimit(9), 5);
+});
+
+test('rate-limit waits use Retry-After and stay within one minute', function () {
+  assert.equal(GJ.retryDelay(''), 4000);
+  assert.equal(GJ.retryDelay('2'), 2000);
+  assert.equal(GJ.retryDelay('0.2'), 1000);
+  assert.equal(GJ.retryDelay('120'), 60000);
+  assert.equal(GJ.retryDelay('Wed, 21 Oct 2015 07:28:00 GMT', Date.parse('Wed, 21 Oct 2015 07:28:03 GMT')), 1000);
+  assert.equal(GJ.retryDelay('not-a-date'), 4000);
+});
+
 test('a missing score is an error, not a zero', function () {
   assert.throws(function () {
     GJ.parseScoreResponse({ answers: {} });

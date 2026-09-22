@@ -1,21 +1,63 @@
 importScripts('lib.js');
 
 const GJ = globalThis.GmgnJev;
-const DEFAULTS = { enabled: true, model: GJ.MODEL, apiKey: '', endpoint: '' };
+const DEFAULTS = { enabled: true, model: GJ.MODEL, apiKey: '', endpoint: '', concurrency: 1 };
 const cache = new Map();
 const inflight = new Map();
 const queue = [];
+const GAP_MS = 1000;
 let active = 0;
+let concurrency = 1;
+let nextAt = 0;
+let pausedUntil = 0;
+let pumpTimer = 0;
 let authBroken = false;
 
 function pump() {
-  while (active < 2 && queue.length) {
+  if (pumpTimer) {
+    clearTimeout(pumpTimer);
+    pumpTimer = 0;
+  }
+  if (!queue.length || active >= concurrency) return;
+  const pace = concurrency <= 1 ? nextAt : 0;
+  const wait = Math.max(pace, pausedUntil) - Date.now();
+  if (wait > 0) {
+    pumpTimer = setTimeout(pump, wait);
+    return;
+  }
+  while (active < concurrency && queue.length && Date.now() >= pausedUntil) {
+    if (concurrency <= 1 && Date.now() < nextAt) break;
     const job = queue.shift();
     active += 1;
+    if (concurrency <= 1) nextAt = Date.now() + GAP_MS;
     job.task().then(job.resolve, job.reject).finally(function () {
       active -= 1;
       pump();
     });
+  }
+  if (!queue.length || active >= concurrency) return;
+  const waitAfter = Math.max(concurrency <= 1 ? nextAt : 0, pausedUntil) - Date.now();
+  if (waitAfter > 0) pumpTimer = setTimeout(pump, waitAfter);
+}
+
+settings().then(function (config) {
+  concurrency = GJ.concurrencyLimit(config.concurrency);
+});
+
+function sleep(ms) {
+  return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+
+async function callUntilReady(apiKey, body, endpoint) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      return await callJev(apiKey, body, endpoint);
+    } catch (error) {
+      if (error.status !== 429 || attempt === 3) throw error;
+      const wait = error.retryAfter || GJ.retryDelay('');
+      pausedUntil = Date.now() + wait;
+      await sleep(wait);
+    }
   }
 }
 
@@ -65,6 +107,7 @@ async function callJev(apiKey, body, endpoint) {
   if (!response.ok) {
     const error = new Error(errorText(response.status, text));
     error.status = response.status;
+    if (response.status === 429) error.retryAfter = GJ.retryDelay(response.headers.get('retry-after'));
     throw error;
   }
   let parsed;
@@ -113,7 +156,7 @@ async function scoreOne(raw) {
   if (cached) return cached.result;
   if (inflight.has(id + '|' + fp)) return inflight.get(id + '|' + fp);
   const job = enqueue(function () {
-    return callJev(apiKey, GJ.buildRequest(snapshot, config.model), config.endpoint);
+    return callUntilReady(apiKey, GJ.buildRequest(snapshot, config.model), config.endpoint);
   }).then(async function (result) {
     await writeCached(id, { fingerprint: fp, result: result });
     return result;
@@ -159,6 +202,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
         hasKey: !!apiKey,
         endpoint: resolved.error ? GJ.ENDPOINT : resolved.url,
         rules: GJ.normalizeRules(config.rules),
+        concurrency: GJ.concurrencyLimit(config.concurrency),
       };
       if (message.includeKey) response.apiKey = apiKey;
       sendResponse(response);
@@ -179,6 +223,10 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
       patch.endpoint = resolved.official ? '' : resolved.url;
     }
     if (message.rules && typeof message.rules === 'object') patch.rules = GJ.normalizeRules(message.rules);
+    if (message.concurrency != null) {
+      patch.concurrency = GJ.concurrencyLimit(message.concurrency);
+      concurrency = patch.concurrency;
+    }
     chrome.storage.local.set(patch).then(function () {
       authBroken = false;
       cache.clear();

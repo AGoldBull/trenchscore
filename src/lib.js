@@ -188,6 +188,23 @@ var GmgnJev = (function () {
     return Math.min(max, Math.max(min, value));
   }
 
+  function concurrencyLimit(value) {
+    const parsed = Math.round(Number(value));
+    if (!Number.isFinite(parsed)) return 1;
+    return clamp(parsed, 1, 5);
+  }
+
+  function retryDelay(retryAfterHeader, nowMs) {
+    const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+    const header = String(retryAfterHeader == null ? '' : retryAfterHeader).trim();
+    if (!header) return 4000;
+    const seconds = Number(header);
+    if (Number.isFinite(seconds)) return clamp(seconds * 1000, 1000, 60000);
+    const date = Date.parse(header);
+    if (Number.isFinite(date)) return clamp(date - now, 1000, 60000);
+    return 4000;
+  }
+
   function parseScoreResponse(body) {
     const answer = body && body.answers && body.answers.quality;
     if (!answer || typeof answer.score !== 'number' || !Number.isFinite(answer.score)) {
@@ -340,6 +357,8 @@ var GmgnJev = (function () {
     DEFAULT_RULES: DEFAULT_RULES,
     normalizeRules: normalizeRules,
     hardReject: hardReject,
+    retryDelay: retryDelay,
+    concurrencyLimit: concurrencyLimit,
   };
   })();
   var targets = [];

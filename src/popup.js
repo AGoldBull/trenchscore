@@ -2,6 +2,7 @@ const enabledInput = document.getElementById('enabled');
 const apiKeyInput = document.getElementById('apiKey');
 const toggleKeyButton = document.getElementById('toggleKey');
 const modelInput = document.getElementById('model');
+const concurrencyInput = document.getElementById('concurrency');
 const endpointInput = document.getElementById('endpoint');
 const statusNode = document.getElementById('status');
 
@@ -84,6 +85,7 @@ function load() {
     enabledInput.checked = settings.enabled !== false;
     apiKeyInput.value = settings.apiKey || '';
     modelInput.value = settings.model || 'jev-latest';
+    concurrencyInput.value = String(GmgnJev.concurrencyLimit(settings.concurrency));
     endpointInput.value = settings.endpoint || 'https://api.typesafe.ai/v1/systemone';
     fillRules(GmgnJev.normalizeRules(settings.rules));
   });
@@ -117,6 +119,7 @@ document.getElementById('save').addEventListener('click', function () {
       apiKey: apiKeyInput.value,
       enabled: enabledInput.checked,
       model: modelInput.value,
+      concurrency: GmgnJev.concurrencyLimit(concurrencyInput.value),
       endpoint: resolved.official ? '' : resolved.url,
       rules: collectRules(),
     }, function (response) {

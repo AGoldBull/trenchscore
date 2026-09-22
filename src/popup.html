@@ -31,6 +31,10 @@
       <span>供应商地址</span>
       <input id="endpoint" type="url" spellcheck="false" placeholder="https://api.typesafe.ai/v1/systemone" />
     </label>
+    <label class="inline">
+      <span>并发</span>
+      <input id="concurrency" type="number" min="1" max="5" step="1" value="1" />
+    </label>
     <section class="rules" aria-label="硬条件">
       <strong>硬条件</strong>
       <div id="ruleList"></div>

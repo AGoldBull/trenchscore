@@ -18,6 +18,7 @@
   window.__GJ_CONTENT__ = true;
   const results = new Map();
   const pending = new Set();
+  const waiting = new Map();
   let enabled = true;
   let hasKey = false;
   let authError = '';
@@ -199,10 +200,54 @@
     results.set(id, Object.assign({ fingerprint: fp, cardFp: cardFp }, fields));
   }
 
+  function findCard(id) {
+    const nodes = document.querySelectorAll('[data-gj-card]');
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].getAttribute('data-gj-card') === id) return nodes[i];
+    }
+    return null;
+  }
+
+  function inView(element) {
+    const rect = element.getBoundingClientRect();
+    const height = window.innerHeight || document.documentElement.clientHeight;
+    const width = window.innerWidth || document.documentElement.clientWidth;
+    return rect.bottom > -80 && rect.top < height + 80 && rect.right > 0 && rect.left < width;
+  }
+
+  function flushVisible() {
+    const ready = [];
+    waiting.forEach(function (snapshot, key) {
+      const card = findCard(GJ.cardId(snapshot));
+      if (!card || !inView(card)) return;
+      if (snapshot._cardFp && card.getAttribute('data-gj-fp') && card.getAttribute('data-gj-fp') !== snapshot._cardFp) {
+        waiting.delete(key);
+        return;
+      }
+      ready.push({ snapshot: snapshot, top: card.getBoundingClientRect().top });
+    });
+    ready.sort(function (a, b) { return a.top - b.top; });
+    ready.forEach(function (item) { requestScore(item.snapshot); });
+  }
+
+  function acceptSnapshots(snapshots) {
+    const visible = [];
+    (snapshots || []).forEach(function (snapshot) {
+      const id = GJ.cardId(snapshot);
+      const fp = GJ.fingerprint(snapshot);
+      const card = findCard(id);
+      if (card && inView(card)) visible.push({ snapshot: snapshot, top: card.getBoundingClientRect().top });
+      else waiting.set(id + '|' + fp, snapshot);
+    });
+    visible.sort(function (a, b) { return a.top - b.top; });
+    visible.forEach(function (item) { requestScore(item.snapshot); });
+  }
+
   function requestScore(snapshot) {
     const id = GJ.cardId(snapshot);
     const cardFp = snapshot._cardFp || '';
     const fp = GJ.fingerprint(snapshot);
+    waiting.delete(id + '|' + fp);
     const hard = GJ.hardReject(snapshot, rules);
     if (hard) {
       remember(id, fp, cardFp, { hard: true, label: hard.label, detail: hard.detail });
@@ -273,7 +318,7 @@
   window.addEventListener('message', function (event) {
     if (event.source !== window || !event.data || event.data.source !== 'trenchscore') return;
     if (event.data.type === 'SNAPSHOTS' && enabled) {
-      (event.data.snapshots || []).forEach(requestScore);
+      acceptSnapshots(event.data.snapshots);
     }
     if (event.data.type === 'STATUS') {
       pageCards = Number(event.data.cards) || 0;
@@ -296,12 +341,17 @@
       if (rescan) authError = '';
       if (rescan && enabled) {
         results.clear();
+        waiting.clear();
         window.postMessage({ source: 'trenchscore-content', type: 'HELLO' }, '*');
       }
       paintAll();
     });
   }
 
-  window.setInterval(paintAll, 700);
+  window.addEventListener('scroll', flushVisible, true);
+  window.setInterval(function () {
+    flushVisible();
+    paintAll();
+  }, 700);
   refreshSettings(true);
 })();
